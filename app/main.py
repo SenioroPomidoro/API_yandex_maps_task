@@ -1,11 +1,13 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QLineEdit, QVBoxLayout, \
+    QWidget, QHBoxLayout
 from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtCore import Qt
 
 from app import const
+from app.api.geocoder_api import get_coords
 from app.api.static_api import get_map_image
 
 
@@ -20,6 +22,7 @@ class MapsApp(QMainWindow):
         self.scale = 1  # Масштаб (В диапазоне 0-21)
         self.long_lat = [39.0, 58.0]
         self.theme_id = 0  # 0 - светлая, 1 - темная
+        self.marker_coords = None
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -36,12 +39,30 @@ class MapsApp(QMainWindow):
 
     def initUi(self):
         """Инициализация интерфейса"""
-        self.town_label = QLabel(self)
-        self.town_label.resize(720, 540)
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        layout = QVBoxLayout(self.central_widget)
 
         self.theme_button = QPushButton("Темная тема", self)
-        self.theme_button.setGeometry(450, 10, 140, 30)
+        self.theme_button.setGeometry(450, 50, 140, 30)
         self.theme_button.clicked.connect(self.toggle_theme)
+
+        # Панель поиска
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Введите адрес для поиска...")
+        self.search_button = QPushButton("Искать")
+        self.search_button.clicked.connect(self.search_location)
+        self.search_input.returnPressed.connect(self.search_location)
+
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(self.search_button)
+        layout.addLayout(search_layout)
+
+        self.town_label = QLabel()
+        self.town_label.resize(720, 540)
+        self.town_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.town_label)
 
     def toggle_theme(self):
         """Переключение между темами"""
@@ -69,20 +90,40 @@ class MapsApp(QMainWindow):
 
         QApplication.instance().setPalette(palette)
 
-    # Остальные методы остаются без изменений
     def next_frame(self):
         """Загрузка изображения"""
         try:
             image_bytes = get_map_image(
                 scale=self.scale,
                 long_lat=self.long_lat,
-                theme=const.MAP_COLOR_THEMES[self.theme_id]
+                theme=const.MAP_COLOR_THEMES[self.theme_id],
+                marker_coords=self.marker_coords
             )
             with open(const.MAP_IMAGE_FILE, "wb") as file:
                 file.write(image_bytes)
             self.town_label.setPixmap(QPixmap(const.MAP_IMAGE_FILE))
         except Exception as err:
-            print("Ошибка получения изображения карты: ", err)
+            QMessageBox.critical(self, "Ошибка", f"Ошибка получения изображения карты: : {str(err)}")
+
+    def search_location(self):
+        address = self.search_input.text().strip()
+        if not address:
+            return
+
+        try:
+            coords = get_coords(address)
+            if coords:
+                self.long_lat = coords
+                self.marker_coords = coords
+                self.next_frame()
+            else:
+                self.marker_coords = None
+                QMessageBox.warning(self, "Ошибка", "Объект по такому адресу не найден!")
+                self.next_frame()
+        except Exception as e:
+            self.marker_coords = None
+            QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
+            self.next_frame()
 
     def change_scale(self, amount):
         self.scale += amount
