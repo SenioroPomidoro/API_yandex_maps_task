@@ -21,7 +21,11 @@ class MapsApp(QMainWindow):
 
         self.keys_in_use = [
             Qt.Key.Key_PageUp,
-            Qt.Key.Key_PageDown
+            Qt.Key.Key_PageDown,
+            Qt.Key.Key_Up,
+            Qt.Key.Key_Down,
+            Qt.Key.Key_Right,
+            Qt.Key.Key_Left
         ]
 
         self.initUi()
@@ -45,6 +49,17 @@ class MapsApp(QMainWindow):
         if self.scale < 0:
             self.scale = 0
 
+        ll = self.ll.split(",")
+        if float(ll[1]) <= -85:
+            ll[1] = "-85"
+        elif float(ll[1]) >= 85:
+            ll[1] = "85"
+        if float(ll[0]) >= 180:
+            ll[0] = "-180"
+        elif float(ll[0]) <= -180:
+            ll[0] = "180"
+        self.ll = ",".join(ll)
+
         self.params = {
             "ll": self.ll,
             "z": str(self.scale)
@@ -59,6 +74,26 @@ class MapsApp(QMainWindow):
                 self.scale += 1
             elif key_id == Qt.Key.Key_PageDown:
                 self.scale -= 1
+            elif key_id == Qt.Key.Key_Up:
+                shift = 100 / (2 ** self.scale)
+                ll = self.ll.split(",")
+                ll[1] = str(float(ll[1]) + shift)
+                self.ll = ",".join(ll)
+            elif key_id == Qt.Key.Key_Down:
+                shift = 100 / (2 ** self.scale)
+                ll = self.ll.split(",")
+                ll[1] = str(float(ll[1]) - shift)
+                self.ll = ",".join(ll)
+            elif key_id == Qt.Key.Key_Right:
+                shift = 150 / (2 ** self.scale)
+                ll = self.ll.split(",")
+                ll[0] = str(float(ll[0]) + shift)
+                self.ll = ",".join(ll)
+            elif key_id == Qt.Key.Key_Left:
+                shift = 150 / (2 ** self.scale)
+                ll = self.ll.split(",")
+                ll[0] = str(float(ll[0]) - shift)
+                self.ll = ",".join(ll)
 
             self.next_frame()
 
