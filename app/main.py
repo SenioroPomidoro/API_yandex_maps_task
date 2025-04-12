@@ -1,8 +1,8 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton
+from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtCore import Qt
 
 from app import const
@@ -19,6 +19,7 @@ class MapsApp(QMainWindow):
 
         self.scale = 1  # Масштаб (В диапазоне 0-21)
         self.long_lat = [39.0, 58.0]
+        self.theme_id = 0  # 0 - светлая, 1 - темная
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -30,6 +31,7 @@ class MapsApp(QMainWindow):
         }
 
         self.initUi()
+        self.update_app_theme()  # Применяем начальную тему
         self.next_frame()
 
     def initUi(self):
@@ -37,11 +39,45 @@ class MapsApp(QMainWindow):
         self.town_label = QLabel(self)
         self.town_label.resize(720, 540)
 
+        self.theme_button = QPushButton("Темная тема", self)
+        self.theme_button.setGeometry(450, 10, 140, 30)
+        self.theme_button.clicked.connect(self.toggle_theme)
+
+    def toggle_theme(self):
+        """Переключение между темами"""
+        self.theme_id = 1 - self.theme_id
+        self.update_app_theme()
+        self.next_frame()
+
+    def update_app_theme(self):
+        """Обновление стилей приложения в зависимости от темы"""
+        palette = QApplication.palette()
+        if self.theme_id == 1:
+            # Темная тема
+            palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.darkGray)
+            palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
+            palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
+            palette.setColor(QPalette.ColorRole.Button, Qt.GlobalColor.darkGray)
+            self.theme_button.setText("Светлая тема")
+        else:
+            # Светлая тема
+            palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white)
+            palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.black)
+            palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.black)
+            palette.setColor(QPalette.ColorRole.Button, Qt.GlobalColor.lightGray)
+            self.theme_button.setText("Темная тема")
+
+        QApplication.instance().setPalette(palette)
+
+    # Остальные методы остаются без изменений
     def next_frame(self):
         """Загрузка изображения"""
-
         try:
-            image_bytes = get_map_image(self.scale, self.long_lat)
+            image_bytes = get_map_image(
+                scale=self.scale,
+                long_lat=self.long_lat,
+                theme=const.MAP_COLOR_THEMES[self.theme_id]
+            )
             with open(const.MAP_IMAGE_FILE, "wb") as file:
                 file.write(image_bytes)
             self.town_label.setPixmap(QPixmap(const.MAP_IMAGE_FILE))
