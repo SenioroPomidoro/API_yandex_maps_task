@@ -26,7 +26,7 @@ def get_coords(town: str) -> list | None:
     toponym = founded[0]
     toponym_coords = toponym["GeoObject"]["Point"]["pos"]
 
-    return [str(float(i)) for i in toponym_coords.split()]
+    return [float(i) for i in toponym_coords.split()]
 
 
 # EXAMPLE
