@@ -1,22 +1,22 @@
 import requests
 
+from app import const
 
-def get_coords(town) -> list:
+
+def get_coords(town: str) -> list:
     """
     Функция для получения координат города по названию
     :param town: название города
     """
-    address = "https://geocode-maps.yandex.ru/1.x/?"
-    apikey = "8013b162-6b42-4997-9691-77b7074026e0"
 
     params = {
-        "apikey": apikey,
+        "apikey": const.GEOCODER_API_KEY,
         "geocode": town,
         "lang": "ru_RU",
         "format": "json"
     }
 
-    response = requests.get(url=address, params=params)
+    response = requests.get(url=const.GEOCODER_API_URL, params=params)
     response_json = response.json()
 
     toponym = response_json["response"]["GeoObjectCollection"]["featureMember"][0]

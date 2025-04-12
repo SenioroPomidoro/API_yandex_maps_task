@@ -1,21 +1,20 @@
-from random import random
-
-from io import BytesIO
-
 import requests
 
+from app import const
 
-def create_new_map_image(params):
+
+def get_map_image(scale: float, long_lat: list[float]) -> bytes:
     """
-    Функция, получающая изображение части города из static_api и сохранающая его в файл map.png
-    :param params: параметры запроса
+    Функция, получающая изображение части города из static_api и сохраняющая его в файл map.png
+    :param long_lat: широта, долгота
+    :param scale: масштаб
     """
 
-    address = "https://static-maps.yandex.ru/v1?"
-    apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
+    params = {
+        "apikey": const.STATIC_MAPS_API_KEY,
+        "ll": f"{long_lat[0]},{long_lat[1]}",
+        "z": scale
+    }
 
-    params["apikey"] = apikey
-
-    response = requests.get(url=address, params=params)
-    with open("app/map/map_image.png", "wb") as file:
-        file.write(response.content)
+    response = requests.get(url=const.STATIC_MAPS_API_URL, params=params)
+    return response.content
