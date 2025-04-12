@@ -3,6 +3,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt
 
 from app.api.static_api import create_new_map_image
 
@@ -17,6 +18,11 @@ class MapsApp(QMainWindow):
 
         self.scale = 1  # Масштаб (В диапазоне 0-21)
         self.ll = "39,58"
+
+        self.keys_in_use = [
+            Qt.Key.Key_PageUp,
+            Qt.Key.Key_PageDown
+        ]
 
         self.initUi()
         self.next_frame()
@@ -44,9 +50,17 @@ class MapsApp(QMainWindow):
             "z": str(self.scale)
         }
 
-    def keyPressEvent(self, a0):
+    def keyPressEvent(self, event):
         """Обработка нажатий на клавиши"""
-        pass
+        key_id = event.key()
+
+        if key_id in self.keys_in_use:
+            if key_id == Qt.Key.Key_PageUp:
+                self.scale += 1
+            elif key_id == Qt.Key.Key_PageDown:
+                self.scale -= 1
+
+            self.next_frame()
 
     def closeEvent(self, a0):
         """Обработчик выхода из приложения"""
