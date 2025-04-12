@@ -1,12 +1,10 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QLineEdit, QVBoxLayout, \
     QWidget, QHBoxLayout
-from PyQt6.QtGui import QPixmap, QPalette
-from PyQt6.QtCore import Qt
 
 from app import const
 from app.api.geocoder_api import get_coords
@@ -105,7 +103,10 @@ class MapsApp(QMainWindow):
                 file.write(image_bytes)
             self.town_label.setPixmap(QPixmap(const.MAP_IMAGE_FILE))
         except Exception as err:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка получения изображения карты: : {str(err)}")
+            QMessageBox.critical(
+                self, "Ошибка",
+                f"Ошибка получения изображения карты: : {str(err)}"
+            )
 
     def search_location(self):
         address = self.search_input.text().strip()
@@ -120,7 +121,10 @@ class MapsApp(QMainWindow):
                 self.next_frame()
             else:
                 self.marker_coords = None
-                QMessageBox.warning(self, "Ошибка", "Объект по такому адресу не найден!")
+                QMessageBox.warning(
+                    self, "Ошибка",
+                    "Объект по такому адресу не найден!"
+                )
                 self.next_frame()
         except Exception as e:
             self.marker_coords = None
