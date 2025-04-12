@@ -3,7 +3,7 @@ import requests
 from app import const
 
 
-def get_map_image(scale: float, long_lat: list[float], theme: str) -> bytes:
+def get_map_image(scale: float, long_lat: list[float], theme: str, marker_coords: list[float] = None) -> bytes:
     """
     Функция, получающая изображение части города из static_api и сохраняющая его в файл map.png
     :param theme: цветовая тема light или dark
@@ -17,6 +17,9 @@ def get_map_image(scale: float, long_lat: list[float], theme: str) -> bytes:
         "theme": theme,
         "z": scale
     }
+
+    if marker_coords:
+        params["pt"] = f"{marker_coords[0]},{marker_coords[1]},pm2rdl"
 
     response = requests.get(url=const.STATIC_MAPS_API_URL, params=params)
     return response.content

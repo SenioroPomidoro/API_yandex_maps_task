@@ -3,7 +3,7 @@ import requests
 from app import const
 
 
-def get_coords(town: str) -> list:
+def get_coords(town: str) -> list | None:
     """
     Функция для получения координат города по названию
     :param town: название города
@@ -19,10 +19,14 @@ def get_coords(town: str) -> list:
     response = requests.get(url=const.GEOCODER_API_URL, params=params)
     response_json = response.json()
 
-    toponym = response_json["response"]["GeoObjectCollection"]["featureMember"][0]
+    founded = response_json["response"]["GeoObjectCollection"]["featureMember"]
+    if not founded:
+        return None
+
+    toponym = founded[0]
     toponym_coords = toponym["GeoObject"]["Point"]["pos"]
 
-    return ",".join([str(float(i)) for i in toponym_coords.split()])
+    return [str(float(i)) for i in toponym_coords.split()]
 
 
 # EXAMPLE
