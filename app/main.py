@@ -51,18 +51,26 @@ class MapsApp(QMainWindow):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Введите адрес для поиска...")
         self.search_button = QPushButton("Искать")
+        self.reset_button = QPushButton("Сбросить")
         self.search_button.clicked.connect(self.search_location)
+        self.reset_button.clicked.connect(self.reset_search_result)
         self.search_input.returnPressed.connect(self.search_location)
 
         search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_input)
         search_layout.addWidget(self.search_button)
+        search_layout.addWidget(self.reset_button)
         layout.addLayout(search_layout)
 
         self.town_label = QLabel()
         self.town_label.resize(720, 540)
         self.town_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.town_label)
+
+    def reset_search_result(self):
+        self.search_input.setText("")
+        self.marker_coords = None
+        self.next_frame()
 
     def toggle_theme(self):
         """Переключение между темами"""
