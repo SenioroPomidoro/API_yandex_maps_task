@@ -17,5 +17,5 @@ def create_new_map_image(params):
     params["apikey"] = apikey
 
     response = requests.get(url=address, params=params)
-    with open("map/map_image.png", "wb") as file:
+    with open("app/map/map_image.png", "wb") as file:
         file.write(response.content)

@@ -1,11 +1,10 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from PyQt6.QtGui import QPixmap
 
-from api.geocoder_api import get_coords
-from api.static_api import create_new_map_image
+from app.api.static_api import create_new_map_image
 
 
 class MapsApp(QMainWindow):
@@ -31,7 +30,7 @@ class MapsApp(QMainWindow):
         """Загрузка изображения"""
         self.update_params()
         create_new_map_image(self.params)
-        self.town_label.setPixmap(QPixmap("map/map_image.png"))
+        self.town_label.setPixmap(QPixmap("app/map/map_image.png"))
 
     def update_params(self):
         """Обновление параметров запроса"""
@@ -51,7 +50,7 @@ class MapsApp(QMainWindow):
 
     def closeEvent(self, a0):
         """Обработчик выхода из приложения"""
-        os.remove("map/map_image.png")
+        os.remove("app/map/map_image.png")
 
 
 if __name__ == "__main__":
