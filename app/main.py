@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMes
     QWidget, QHBoxLayout
 
 from app import const
-from app.api.geocoder_api import get_coords
+from app.api.geocoder_api import get_coords, get_address
 from app.api.static_api import get_map_image
 
 from app.classes.LineEdit import SuperMegaQLineEdit
@@ -25,6 +25,7 @@ class MapsApp(QMainWindow):
         self.long_lat = [39.0, 58.0]
         self.theme_id = 0  # 0 - светлая, 1 - темная
         self.marker_coords = None
+        self.address_filed_text = "Адрес объекта: "
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -64,13 +65,26 @@ class MapsApp(QMainWindow):
         search_layout.addWidget(self.reset_button)
         layout.addLayout(search_layout)
 
-        self.town_label = QLabel()
+        self.town_label = QLabel(self)
         self.town_label.resize(720, 540)
         self.town_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.town_label)
 
+        self.address_label = QLabel(self)
+        self.address_label.resize(600, 50)
+        self.setAddress(self.address_filed_text)
+        self.address_label.move(10, 550)
+
+    def setAddress(self, address):
+        self.address_label.setText(address)
+        self.address_label.resize(self.address_label.sizeHint())
+        self.address_label.setWordWrap(True)  # Автоматический перенос строк
+        self.address_label.setFixedWidth(580)
+
     def reset_search_result(self):
         self.search_input.setText("")
+        self.address_filed_text = "Адрес объекта: "
+        self.setAddress(self.address_filed_text)
         self.marker_coords = None
         self.next_frame()
 
@@ -128,6 +142,8 @@ class MapsApp(QMainWindow):
             if coords:
                 self.long_lat = coords
                 self.marker_coords = coords.copy()
+                self.address_filed_text = F"Адрес объекта: {get_address(address)}"
+                self.setAddress(self.address_filed_text)
                 self.next_frame()
             else:
                 self.marker_coords = None
@@ -138,6 +154,8 @@ class MapsApp(QMainWindow):
                 self.next_frame()
         except Exception as e:
             self.marker_coords = None
+            self.address_filed_text = "Адрес объекта: "
+            self.setAddress(self.address_filed_text)
             QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
             self.next_frame()
 

@@ -3,15 +3,15 @@ import requests
 from app import const
 
 
-def get_coords(town: str) -> list | None:
+def get_toponym(geocode: str) -> list | None:
     """
     Функция для получения координат города по названию
-    :param town: название города
+    :param geocode: поисковой запрос места
     """
 
     params = {
         "apikey": const.GEOCODER_API_KEY,
-        "geocode": town,
+        "geocode": geocode,
         "lang": "ru_RU",
         "format": "json"
     }
@@ -24,11 +24,37 @@ def get_coords(town: str) -> list | None:
         return None
 
     toponym = founded[0]
-    toponym_coords = toponym["GeoObject"]["Point"]["pos"]
+    return toponym
 
+
+def get_coords(geocode: str) -> list | None:
+    """
+    Функция по получению координат места из топонима
+    :param geocode: поисковой запрос места
+    """
+    toponym = get_toponym(geocode)
+    if toponym is None:
+        return None
+
+    toponym_coords = toponym["GeoObject"]["Point"]["pos"]
     return [float(i) for i in toponym_coords.split()]
+
+
+def get_address(geocode: str) -> str | None:
+    """
+        Функция по получению адреса места из топонима
+        :param geocode: поисковой запрос места
+        """
+    toponym = get_toponym(geocode)
+    if toponym is None:
+        return None
+
+    address = toponym["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["text"]
+
+    return address
 
 
 # EXAMPLE
 if __name__ == "__main__":
     print(get_coords("Новосибирск"))
+    print(get_address("Венская 21"))
