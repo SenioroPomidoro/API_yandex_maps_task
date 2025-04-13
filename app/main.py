@@ -28,6 +28,7 @@ class MapsApp(QMainWindow):
         self.address_filed_text = "Адрес объекта: "
         self.postal_code = "| Почтовый индекс: "
         self.show_postal_code = False
+        self.toponym = None
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -86,6 +87,19 @@ class MapsApp(QMainWindow):
     def radio_reaction(self):
         """Функция, обрабатывающая смену показа почтового индекса"""
         self.show_postal_code = not self.show_postal_code
+        self.placeAddress()
+
+    def placeAddress(self):
+        """Изменение наличия почтового индекса в адресе"""
+        if self.toponym is None:
+            return
+        self.address_filed_text = F"Адрес объекта: {get_address(self.toponym)} "
+        if self.show_postal_code:
+            self.postal_code = F"| Почтовый индекс: {get_postal_code(self.toponym)}"
+            self.address_filed_text += self.postal_code
+        else:
+            self.postal_code = None
+        self.setAddress(self.address_filed_text)
 
     def setAddress(self, address):
         self.address_label.setText(address)
@@ -99,6 +113,7 @@ class MapsApp(QMainWindow):
         self.postal_code = None
         self.setAddress(self.address_filed_text)
         self.marker_coords = None
+        self.toponym = None
         self.next_frame()
 
     def toggle_theme(self):
@@ -151,18 +166,12 @@ class MapsApp(QMainWindow):
             return
 
         try:
-            toponym = get_toponym(address)
-            coords = get_coords(toponym)
+            self.toponym = get_toponym(address)
+            coords = get_coords(self.toponym)
             if coords:
                 self.long_lat = coords
                 self.marker_coords = coords.copy()
-                self.address_filed_text = F"Адрес объекта: {get_address(toponym)} "
-                if self.show_postal_code:
-                    self.postal_code = F"| Почтовый индекс: {get_postal_code(toponym)}"
-                    self.address_filed_text += self.postal_code
-                else:
-                    self.postal_code = None
-                self.setAddress(self.address_filed_text)
+                self.placeAddress()
                 self.next_frame()
             else:
                 self.marker_coords = None
