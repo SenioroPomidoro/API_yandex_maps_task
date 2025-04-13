@@ -63,7 +63,7 @@ def get_postal_code(toponym: dict) -> list | None:
     try:
         postal_code = toponym["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]['Address']["postal_code"]
     except KeyError:
-        postal_code = "Почтового индекса для этого места нет"
+        postal_code = "Почтовый индекс не определен"
     return postal_code
 
 
