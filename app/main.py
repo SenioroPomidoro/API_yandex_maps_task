@@ -10,7 +10,7 @@ from app import const
 from app.api.geocoder_api import get_coords
 from app.api.static_api import get_map_image
 
-from classes.LineEdit import SuperMegaQLineEdit
+from app.classes.LineEdit import SuperMegaQLineEdit
 
 
 class MapsApp(QMainWindow):
