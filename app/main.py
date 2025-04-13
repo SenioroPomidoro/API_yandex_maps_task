@@ -127,7 +127,7 @@ class MapsApp(QMainWindow):
             coords = get_coords(address)
             if coords:
                 self.long_lat = coords
-                self.marker_coords = coords
+                self.marker_coords = coords.copy()
                 self.next_frame()
             else:
                 self.marker_coords = None
