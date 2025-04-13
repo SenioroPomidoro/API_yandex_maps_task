@@ -4,10 +4,10 @@ import sys
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QLineEdit, QVBoxLayout, \
-    QWidget, QHBoxLayout
+    QWidget, QHBoxLayout, QRadioButton
 
 from app import const
-from app.api.geocoder_api import get_coords, get_address
+from app.api.geocoder_api import get_coords, get_address, get_postal_code, get_toponym
 from app.api.static_api import get_map_image
 
 from app.classes.LineEdit import SuperMegaQLineEdit
@@ -19,13 +19,15 @@ class MapsApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("MapsApp")
         self.setGeometry(100, 100, 600, 600)
-        self.setFixedSize(600, 600)
+        self.setFixedSize(600, 650)
 
         self.scale = 1  # Масштаб (В диапазоне 0-21)
         self.long_lat = [39.0, 58.0]
         self.theme_id = 0  # 0 - светлая, 1 - темная
         self.marker_coords = None
         self.address_filed_text = "Адрес объекта: "
+        self.postal_code = "| Почтовый индекс: "
+        self.show_postal_code = False
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -73,7 +75,17 @@ class MapsApp(QMainWindow):
         self.address_label = QLabel(self)
         self.address_label.resize(600, 50)
         self.setAddress(self.address_filed_text)
-        self.address_label.move(10, 550)
+        self.address_label.move(10, 570)
+
+        self.postal_code_button = QRadioButton(self)
+        self.postal_code_button.setText("Почтовый индекс")
+        self.postal_code_button.resize(self.postal_code_button.sizeHint())
+        self.postal_code_button.move(310, 50)
+        self.postal_code_button.toggled.connect(self.radio_reaction)
+
+    def radio_reaction(self):
+        """Функция, обрабатывающая смену показа почтового индекса"""
+        self.show_postal_code = not self.show_postal_code
 
     def setAddress(self, address):
         self.address_label.setText(address)
@@ -84,6 +96,7 @@ class MapsApp(QMainWindow):
     def reset_search_result(self):
         self.search_input.setText("")
         self.address_filed_text = "Адрес объекта: "
+        self.postal_code = None
         self.setAddress(self.address_filed_text)
         self.marker_coords = None
         self.next_frame()
@@ -138,11 +151,17 @@ class MapsApp(QMainWindow):
             return
 
         try:
-            coords = get_coords(address)
+            toponym = get_toponym(address)
+            coords = get_coords(toponym)
             if coords:
                 self.long_lat = coords
                 self.marker_coords = coords.copy()
-                self.address_filed_text = F"Адрес объекта: {get_address(address)}"
+                self.address_filed_text = F"Адрес объекта: {get_address(toponym)} "
+                if self.show_postal_code:
+                    self.postal_code = F"| Почтовый индекс: {get_postal_code(toponym)}"
+                    self.address_filed_text += self.postal_code
+                else:
+                    self.postal_code = None
                 self.setAddress(self.address_filed_text)
                 self.next_frame()
             else:

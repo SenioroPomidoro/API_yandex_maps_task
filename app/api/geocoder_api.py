@@ -3,7 +3,7 @@ import requests
 from app import const
 
 
-def get_toponym(geocode: str) -> list | None:
+def get_toponym(geocode: str) -> dict | None:
     """
     Функция для получения координат города по названию
     :param geocode: поисковой запрос места
@@ -27,12 +27,11 @@ def get_toponym(geocode: str) -> list | None:
     return toponym
 
 
-def get_coords(geocode: str) -> list | None:
+def get_coords(toponym: dict) -> list | None:
     """
     Функция по получению координат места из топонима
-    :param geocode: поисковой запрос места
+    :param toponym: словарь с данными места
     """
-    toponym = get_toponym(geocode)
     if toponym is None:
         return None
 
@@ -40,21 +39,36 @@ def get_coords(geocode: str) -> list | None:
     return [float(i) for i in toponym_coords.split()]
 
 
-def get_address(geocode: str) -> str | None:
+def get_address(toponym: str) -> str | None:
     """
-        Функция по получению адреса места из топонима
-        :param geocode: поисковой запрос места
-        """
-    toponym = get_toponym(geocode)
+    Функция по получению адреса места из топонима
+    :param toponym: словарь с данными места
+    """
     if toponym is None:
         return None
 
     address = toponym["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["text"]
-
     return address
+
+
+def get_postal_code(toponym: dict) -> list | None:
+    """
+    Функция для получения почтового индекса из топонима
+    :param toponym: словарь с данными места
+    """
+
+    if toponym is None:
+        return None
+
+    try:
+        postal_code = toponym["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]['Address']["postal_code"]
+    except KeyError:
+        postal_code = "Почтового индекса для этого места нет"
+    return postal_code
 
 
 # EXAMPLE
 if __name__ == "__main__":
-    print(get_coords("Новосибирск"))
-    print(get_address("Венская 21"))
+    print(get_coords(get_toponym("Москва")))
+    print(get_address(get_toponym("Москва")))
+    print(get_postal_code(get_toponym("Москва, Парковая 10, 17-68")))
