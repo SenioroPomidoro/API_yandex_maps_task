@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 
@@ -5,6 +6,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QVBoxLayout, \
     QWidget, QHBoxLayout, QCheckBox
+from pyspark.examples.src.main.python.als import update
 
 from app import const
 from app.api.geocoder_api import get_coords, get_address, get_postal_code, get_toponym
@@ -68,10 +70,10 @@ class MapsApp(QMainWindow):
         search_layout.addWidget(self.reset_button)
         layout.addLayout(search_layout)
 
-        self.town_label = QLabel(self)
-        self.town_label.resize(720, 540)
-        self.town_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.town_label)
+        self.map_label = QLabel(self)
+        self.map_label.resize(*const.MAP_SIZE)
+        self.map_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.map_label)
 
         self.address_label = QLabel(self)
         self.address_label.resize(600, 50)
@@ -141,18 +143,19 @@ class MapsApp(QMainWindow):
             )
             with open(const.MAP_IMAGE_FILE, "wb") as file:
                 file.write(image_bytes)
-            self.town_label.setPixmap(QPixmap(const.MAP_IMAGE_FILE))
+            self.map_label.setPixmap(QPixmap(const.MAP_IMAGE_FILE))
         except Exception as err:
             QMessageBox.critical(
                 self, "Ошибка",
                 f"Ошибка получения изображения карты: : {str(err)}"
             )
 
-    def set_search_result(self, toponym):
+    def set_search_result(self, toponym, update_center=True):
         coords = get_coords(toponym)
         if coords:
             self.toponym = toponym
-            self.long_lat = coords
+            if update_center:
+                self.long_lat = coords
             self.marker_coords = coords.copy()
             self.address_filed_text = get_address(toponym)
             self.postal_code = get_postal_code(toponym)
@@ -179,6 +182,13 @@ class MapsApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
 
+    def search_location_with_ll(self, ll: tuple[float, float]):
+        try:
+            toponym = get_toponym("{},{}".format(*ll))
+            self.set_search_result(toponym, update_center=False)
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
+
     def change_scale(self, amount):
         self.scale += amount
         self.scale = max(const.SCALE_LIMITS[0], min(self.scale, const.SCALE_LIMITS[1]))
@@ -201,6 +211,43 @@ class MapsApp(QMainWindow):
     def closeEvent(self, a0):
         """Обработчик выхода из приложения"""
         os.remove(const.MAP_IMAGE_FILE)
+
+    def pixels_to_long_lat(self, dx: int, dy: int) -> tuple[float, float]:
+        """
+        Функция вычисляет новые координаты lon, lat из self.long_lat используя
+        смещение в пикселях от центра изображения карты
+
+        :param dx: - смещение x от центра в пикселях
+        :param dy: - смещение y от центра в пикселях
+        :return: возвращает смещенные координаты
+        """
+
+        elen_m = 40075016.686  # длинна экватора метры
+        m_per_gradus = 111321  # метров в одном градусе (широты, долготы)
+
+        m_in_px = elen_m / (455 * (2 ** self.scale))  # метров в пикселе
+
+        dx, dy = dx * m_in_px, dy * m_in_px  # смещение в метрах
+
+        lon = self.long_lat[0] + (dx / (math.cos(self.long_lat[1] * math.pi / 180) * m_per_gradus))
+        lat = self.long_lat[1] - dy / m_per_gradus
+
+        return lon, lat
+
+    def mousePressEvent(self, event):
+        """Обработчик нажатия мыши на карте"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            global_pos = event.globalPosition()
+            local_pos = self.map_label.mapFromGlobal(global_pos.toPoint())
+            width = self.map_label.width() // 2
+            height = self.map_label.height() // 2
+            dx, dy = local_pos.x() - width, local_pos.y() - height
+
+            if -width < dx < width and -height < dy < height:
+                coords = self.pixels_to_long_lat(dx, dy)
+                self.search_location_with_ll(coords)
+                self.marker_coords = coords
+                self.update_map_image()
 
 
 if __name__ == "__main__":

@@ -15,3 +15,5 @@ MAP_SHIFT_Y = 50
 MAP_SHIFT_X = 75
 
 MAP_COLOR_THEMES = ("light", "dark")
+
+MAP_SIZE = (600, 450)

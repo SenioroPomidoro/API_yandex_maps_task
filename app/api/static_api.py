@@ -15,7 +15,8 @@ def get_map_image(scale: float, long_lat: list[float], theme: str, marker_coords
         "apikey": const.STATIC_MAPS_API_KEY,
         "ll": f"{long_lat[0]},{long_lat[1]}",
         "theme": theme,
-        "z": scale
+        "z": scale,
+        "size": "{},{}".format(*const.MAP_SIZE)
     }
 
     if marker_coords:
