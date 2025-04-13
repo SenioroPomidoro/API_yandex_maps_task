@@ -3,13 +3,12 @@ import sys
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPalette
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QLineEdit, QVBoxLayout, \
-    QWidget, QHBoxLayout, QRadioButton
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QVBoxLayout, \
+    QWidget, QHBoxLayout, QCheckBox
 
 from app import const
 from app.api.geocoder_api import get_coords, get_address, get_postal_code, get_toponym
 from app.api.static_api import get_map_image
-
 from app.classes.LineEdit import SuperMegaQLineEdit
 
 
@@ -25,9 +24,8 @@ class MapsApp(QMainWindow):
         self.long_lat = [39.0, 58.0]
         self.theme_id = 0  # 0 - светлая, 1 - темная
         self.marker_coords = None
-        self.address_filed_text = "Адрес объекта: "
-        self.postal_code = "| Почтовый индекс: "
-        self.show_postal_code = False
+        self.address_filed_text = ""
+        self.postal_code = ""
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -40,7 +38,7 @@ class MapsApp(QMainWindow):
 
         self.initUi()
         self.update_app_theme()  # Применяем начальную тему
-        self.next_frame()
+        self.update_map_image()
 
     def initUi(self):
         """Инициализация интерфейса"""
@@ -57,9 +55,10 @@ class MapsApp(QMainWindow):
         self.search_input.setPlaceholderText("Введите адрес для поиска...")
         self.search_button = QPushButton("Искать")
         self.reset_button = QPushButton("Сбросить")
-        self.search_button.clicked.connect(self.search_location)
+        self.search_button.clicked.connect(self.search_location_with_input)
         self.reset_button.clicked.connect(self.reset_search_result)
-        self.search_input.returnPressed.connect(self.search_location)
+        self.reset_button.clicked.connect(self.reset_search_result)
+        self.search_input.returnPressed.connect(self.search_location_with_input)
 
         search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_input)
@@ -74,20 +73,19 @@ class MapsApp(QMainWindow):
 
         self.address_label = QLabel(self)
         self.address_label.resize(600, 50)
-        self.setAddress(self.address_filed_text)
         self.address_label.move(10, 570)
 
-        self.postal_code_button = QRadioButton(self)
-        self.postal_code_button.setText("Почтовый индекс")
-        self.postal_code_button.resize(self.postal_code_button.sizeHint())
-        self.postal_code_button.move(310, 50)
-        self.postal_code_button.toggled.connect(self.radio_reaction)
+        self.show_postal_code_checkbox = QCheckBox(self)
+        self.show_postal_code_checkbox.setText("Показать почтовый индекс")
+        self.show_postal_code_checkbox.resize(self.show_postal_code_checkbox.sizeHint())
+        self.show_postal_code_checkbox.move(250, 50)
+        self.show_postal_code_checkbox.toggled.connect(self.radio_reaction)
 
     def radio_reaction(self):
         """Функция, обрабатывающая смену показа почтового индекса"""
-        self.show_postal_code = not self.show_postal_code
+        self.update_widgets()
 
-    def setAddress(self, address):
+    def set_address_text(self, address):
         self.address_label.setText(address)
         self.address_label.resize(self.address_label.sizeHint())
         self.address_label.setWordWrap(True)  # Автоматический перенос строк
@@ -95,17 +93,17 @@ class MapsApp(QMainWindow):
 
     def reset_search_result(self):
         self.search_input.setText("")
-        self.address_filed_text = "Адрес объекта: "
+        self.address_filed_text = ""
         self.postal_code = None
-        self.setAddress(self.address_filed_text)
         self.marker_coords = None
-        self.next_frame()
+        self.update_map_image()
+        self.update_widgets()
 
     def toggle_theme(self):
         """Переключение между темами"""
         self.theme_id = 1 - self.theme_id
         self.update_app_theme()
-        self.next_frame()
+        self.update_map_image()
 
     def update_app_theme(self):
         """Обновление стилей приложения в зависимости от темы"""
@@ -114,20 +112,22 @@ class MapsApp(QMainWindow):
             # Темная тема
             palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.darkGray)
             palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-            palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
-            palette.setColor(QPalette.ColorRole.Button, Qt.GlobalColor.darkGray)
             self.theme_button.setText("Светлая тема")
         else:
             # Светлая тема
             palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white)
             palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.black)
-            palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.black)
-            palette.setColor(QPalette.ColorRole.Button, Qt.GlobalColor.lightGray)
             self.theme_button.setText("Темная тема")
 
         QApplication.instance().setPalette(palette)
 
-    def next_frame(self):
+    def update_widgets(self):
+        address_text = self.address_filed_text
+        if self.show_postal_code_checkbox.isChecked():
+            address_text = self.postal_code + ", " + address_text
+        self.set_address_text("Адрес: " + address_text)
+
+    def update_map_image(self):
         """Загрузка изображения"""
         try:
             image_bytes = get_map_image(
@@ -145,38 +145,34 @@ class MapsApp(QMainWindow):
                 f"Ошибка получения изображения карты: : {str(err)}"
             )
 
-    def search_location(self):
+    def set_search_result(self, toponym):
+        coords = get_coords(toponym)
+        if coords:
+            self.long_lat = coords
+            self.marker_coords = coords.copy()
+            self.address_filed_text = get_address(toponym)
+            self.postal_code = get_postal_code(toponym)
+        else:
+            self.marker_coords = None
+            self.address_filed_text = ""
+            self.postal_code = ""
+            QMessageBox.warning(
+                self, "Ошибка",
+                "Объект по такому адресу не найден!"
+            )
+
+        self.update_map_image()
+        self.update_widgets()
+
+    def search_location_with_input(self):
         address = self.search_input.text().strip()
         if not address:
             return
-
         try:
             toponym = get_toponym(address)
-            coords = get_coords(toponym)
-            if coords:
-                self.long_lat = coords
-                self.marker_coords = coords.copy()
-                self.address_filed_text = F"Адрес объекта: {get_address(toponym)} "
-                if self.show_postal_code:
-                    self.postal_code = F"| Почтовый индекс: {get_postal_code(toponym)}"
-                    self.address_filed_text += self.postal_code
-                else:
-                    self.postal_code = None
-                self.setAddress(self.address_filed_text)
-                self.next_frame()
-            else:
-                self.marker_coords = None
-                QMessageBox.warning(
-                    self, "Ошибка",
-                    "Объект по такому адресу не найден!"
-                )
-                self.next_frame()
+            self.set_search_result(toponym)
         except Exception as e:
-            self.marker_coords = None
-            self.address_filed_text = "Адрес объекта: "
-            self.setAddress(self.address_filed_text)
             QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
-            self.next_frame()
 
     def change_scale(self, amount):
         self.scale += amount
@@ -195,7 +191,7 @@ class MapsApp(QMainWindow):
 
         if key_id in self.key_binds:
             self.key_binds[key_id]()
-            self.next_frame()
+            self.update_map_image()
 
     def closeEvent(self, a0):
         """Обработчик выхода из приложения"""
