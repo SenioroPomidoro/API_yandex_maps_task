@@ -3,7 +3,7 @@ import requests
 from app import const
 
 
-def get_toponym(geocode: str) -> list | None:
+def get_toponym(geocode: str) -> dict | None:
     """
     Функция для получения координат города по названию
     :param geocode: поисковой запрос места
@@ -27,12 +27,11 @@ def get_toponym(geocode: str) -> list | None:
     return toponym
 
 
-def get_coords(geocode: str) -> list | None:
+def get_coords(toponym: dict) -> list | None:
     """
     Функция по получению координат места из топонима
     :param geocode: поисковой запрос места
     """
-    toponym = get_toponym(geocode)
     if toponym is None:
         return None
 
@@ -40,12 +39,11 @@ def get_coords(geocode: str) -> list | None:
     return [float(i) for i in toponym_coords.split()]
 
 
-def get_address(geocode: str) -> str | None:
+def get_address(toponym: dict) -> str | None:
     """
         Функция по получению адреса места из топонима
         :param geocode: поисковой запрос места
         """
-    toponym = get_toponym(geocode)
     if toponym is None:
         return None
 

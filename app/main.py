@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMes
     QWidget, QHBoxLayout
 
 from app import const
-from app.api.geocoder_api import get_coords, get_address
+from app.api.geocoder_api import get_coords, get_address, get_toponym
 from app.api.static_api import get_map_image
 
 from app.classes.LineEdit import SuperMegaQLineEdit
@@ -138,11 +138,12 @@ class MapsApp(QMainWindow):
             return
 
         try:
-            coords = get_coords(address)
+            toponym = get_toponym(address)
+            coords = get_coords(toponym)
             if coords:
                 self.long_lat = coords
                 self.marker_coords = coords.copy()
-                self.address_filed_text = F"Адрес объекта: {get_address(address)}"
+                self.address_filed_text = F"Адрес объекта: {get_address(toponym)}"
                 self.setAddress(self.address_filed_text)
                 self.next_frame()
             else:
