@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMes
 from app import const
 from app.api.geocoder_api import get_coords, get_address, get_postal_code, get_toponym
 from app.api.static_api import get_map_image
+
 from app.classes.LineEdit import SuperMegaQLineEdit
 
 
@@ -26,6 +27,7 @@ class MapsApp(QMainWindow):
         self.marker_coords = None
         self.address_filed_text = ""
         self.postal_code = ""
+        self.toponym = None
 
         self.key_binds = {
             Qt.Key.Key_PageUp: lambda: self.change_scale(1),
@@ -96,6 +98,7 @@ class MapsApp(QMainWindow):
         self.address_filed_text = ""
         self.postal_code = None
         self.marker_coords = None
+        self.toponym = None
         self.update_map_image()
         self.update_widgets()
 
@@ -148,12 +151,14 @@ class MapsApp(QMainWindow):
     def set_search_result(self, toponym):
         coords = get_coords(toponym)
         if coords:
+            self.toponym = toponym
             self.long_lat = coords
             self.marker_coords = coords.copy()
             self.address_filed_text = get_address(toponym)
             self.postal_code = get_postal_code(toponym)
         else:
             self.marker_coords = None
+            self.toponym = None
             self.address_filed_text = ""
             self.postal_code = ""
             QMessageBox.warning(
