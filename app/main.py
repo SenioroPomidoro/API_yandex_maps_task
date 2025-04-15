@@ -6,13 +6,14 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPalette
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QMessageBox, QVBoxLayout, \
     QWidget, QHBoxLayout, QCheckBox
-from pyspark.examples.src.main.python.als import update
 
 from app import const
 from app.api.geocoder_api import get_coords, get_address, get_postal_code, get_toponym
+from app.api.geosearch_api import get_organization
 from app.api.static_api import get_map_image
 
 from app.classes.LineEdit import SuperMegaQLineEdit
+from app.utils import distance_between_coords
 
 
 class MapsApp(QMainWindow):
@@ -28,6 +29,7 @@ class MapsApp(QMainWindow):
         self.theme_id = 0  # 0 - светлая, 1 - темная
         self.marker_coords = None
         self.address_filed_text = ""
+        self.organization_text = ""
         self.postal_code = ""
         self.toponym = None
 
@@ -79,6 +81,10 @@ class MapsApp(QMainWindow):
         self.address_label.resize(600, 50)
         self.address_label.move(10, 570)
 
+        self.organization_label = QLabel(self)
+        self.organization_label.resize(600, 50)
+        self.organization_label.move(10, 575)
+
         self.show_postal_code_checkbox = QCheckBox(self)
         self.show_postal_code_checkbox.setText("Показать почтовый индекс")
         self.show_postal_code_checkbox.resize(self.show_postal_code_checkbox.sizeHint())
@@ -98,6 +104,7 @@ class MapsApp(QMainWindow):
     def reset_search_result(self):
         self.search_input.setText("")
         self.address_filed_text = ""
+        self.organization_text = ""
         self.postal_code = None
         self.marker_coords = None
         self.toponym = None
@@ -131,6 +138,10 @@ class MapsApp(QMainWindow):
         if self.show_postal_code_checkbox.isChecked():
             address_text = self.postal_code + ", " + address_text
         self.set_address_text("Адрес: " + address_text)
+        if self.organization_text:
+            self.organization_label.setText("Организация: " + self.organization_text)
+        else:
+            self.organization_label.setText("")
 
     def update_map_image(self):
         """Загрузка изображения"""
@@ -160,14 +171,12 @@ class MapsApp(QMainWindow):
             self.address_filed_text = get_address(toponym)
             self.postal_code = get_postal_code(toponym)
         else:
-            self.marker_coords = None
-            self.toponym = None
-            self.address_filed_text = ""
-            self.postal_code = ""
+            self.reset_search_result()
             QMessageBox.warning(
                 self, "Ошибка",
                 "Объект по такому адресу не найден!"
             )
+            return
 
         self.update_map_image()
         self.update_widgets()
@@ -236,18 +245,29 @@ class MapsApp(QMainWindow):
 
     def mousePressEvent(self, event):
         """Обработчик нажатия мыши на карте"""
-        if event.button() == Qt.MouseButton.LeftButton:
-            global_pos = event.globalPosition()
-            local_pos = self.map_label.mapFromGlobal(global_pos.toPoint())
-            width = self.map_label.width() // 2
-            height = self.map_label.height() // 2
-            dx, dy = local_pos.x() - width, local_pos.y() - height
+        global_pos = event.globalPosition()
+        local_pos = self.map_label.mapFromGlobal(global_pos.toPoint())
+        width = self.map_label.width() // 2
+        height = self.map_label.height() // 2
+        dx, dy = local_pos.x() - width, local_pos.y() - height
 
-            if -width < dx < width and -height < dy < height:
-                coords = self.pixels_to_long_lat(dx, dy)
-                self.search_location_with_ll(coords)
-                self.marker_coords = coords
-                self.update_map_image()
+        if not (-width < dx < width and -height < dy < height):
+            return
+
+        coords = self.pixels_to_long_lat(dx, dy)
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.search_location_with_ll(coords)
+            self.marker_coords = coords
+            self.update_map_image()
+
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.search_location_with_ll(coords)
+            self.organization_text = get_organization(
+                self.address_filed_text or "Организация", coords, const.ORG_SEARCH_RADIUS
+            )
+            self.update_map_image()
+            self.update_widgets()
 
 
 if __name__ == "__main__":
